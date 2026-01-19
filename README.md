@@ -25,8 +25,12 @@ EmployeePolicy_Q&A_System/
 │   └── extract_pdfs.py               # PDF text extraction utility
 ├── vector_db/                          # Vector database storage (created automatically)
 ├── data/                               # Data directory (for future use)
-├── main.py                            # Main entry point for Q&A system
+├── app.py                             # FastAPI web application
+├── run_app.py                         # Script to run the web app
+├── main.py                            # Command-line Q&A system
 ├── ingest_documents.py                # Script to ingest documents
+├── static/                             # Static files (frontend)
+│   └── index.html                     # Chatbot frontend
 ├── requirements.txt                   # Python dependencies
 ├── .gitignore                         # Git ignore file
 └── README.md                          # This file
@@ -58,7 +62,28 @@ OPENAI_API_KEY=your_openai_api_key_here
 
 ## Usage
 
-### 1. Generate Documents (if needed)
+### 1. Run the Web Application
+
+Start the FastAPI web application with the chatbot interface:
+
+```bash
+python run_app.py
+```
+
+Or using uvicorn directly:
+
+```bash
+uvicorn app:app --reload --host 0.0.0.0 --port 8000
+```
+
+Then open your browser and navigate to:
+- **Frontend**: http://localhost:8000
+- **API Docs**: http://localhost:8000/docs (Swagger UI)
+- **Alternative API Docs**: http://localhost:8000/redoc
+
+The web interface provides a beautiful, interactive chatbot where you can ask questions about employee policies.
+
+### 2. Generate Documents (if needed)
 
 If you need to regenerate the PDF documents with realistic values:
 
@@ -71,7 +96,7 @@ This will create three PDF documents in the `documents/` folder:
 - HR Policy Handbook (complete with all policies)
 - Increment & Probation Policy (detailed policy document)
 
-### 2. Ingest Documents into Vector Database
+### 3. Ingest Documents into Vector Database
 
 Run the RAG pipeline to process and store documents:
 
@@ -85,9 +110,9 @@ This will:
 - Generate embeddings
 - Store them in the vector database
 
-### 3. Run the Q&A System
+### 4. Run the Command-Line Q&A System (Optional)
 
-Start the interactive Q&A system:
+For command-line interface instead of web app:
 
 ```bash
 python main.py
