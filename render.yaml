@@ -1,0 +1,17 @@
+# Render Blueprint - Employee Policy Q&A System
+# Docs: https://render.com/docs/blueprint-spec
+
+services:
+  - type: web
+    name: employee-policy-qa
+    runtime: docker
+    plan: free
+    region: oregon  # or frankfurt, singapore, ohio
+    healthCheckPath: /health
+    envVars:
+      - key: OPENAI_API_KEY
+        sync: false  # Will be set manually in Render dashboard
+      - key: PORT
+        value: 10000
+      - key: ALLOWED_ORIGINS
+        value: "*"
