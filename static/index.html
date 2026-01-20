@@ -1,8 +1,10 @@
 <!DOCTYPE html>
 <html lang="en">
+
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="viewport"
+        content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
     <title>Employee Policy Assistant</title>
     <link rel="icon" type="image/svg+xml" href="/static/favicon.svg">
     <link rel="apple-touch-icon" href="/static/favicon.svg">
@@ -27,13 +29,25 @@
             box-sizing: border-box;
         }
 
+        html {
+            height: 100%;
+            overflow: hidden;
+        }
+
         body {
             font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
             background: var(--bg-primary);
             color: var(--text-primary);
-            height: 100vh;
+            height: 100%;
+            height: 100dvh;
+            /* Dynamic viewport height for mobile */
             overflow: hidden;
             display: flex;
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
         }
 
         /* Main Content - Full Width */
@@ -41,8 +55,11 @@
             flex: 1;
             display: flex;
             flex-direction: column;
-            height: 100vh;
+            height: 100%;
+            width: 100%;
             background: var(--bg-primary);
+            overflow: hidden;
+            position: relative;
         }
 
         .chat-header {
@@ -156,7 +173,8 @@
             margin-bottom: 0;
         }
 
-        .message-text ul, .message-text ol {
+        .message-text ul,
+        .message-text ol {
             margin-left: 24px;
             margin-bottom: 12px;
         }
@@ -281,11 +299,14 @@
             color: var(--text-secondary);
         }
 
-        /* Input Area */
+        /* Input Area - Always visible at bottom */
         .input-area {
-            padding: 24px;
+            padding: 16px;
+            padding-bottom: max(16px, env(safe-area-inset-bottom));
             border-top: 1px solid var(--border-color);
             background: var(--bg-primary);
+            flex-shrink: 0;
+            width: 100%;
         }
 
         .input-wrapper {
@@ -400,10 +421,14 @@
         }
 
         @keyframes typing {
-            0%, 60%, 100% {
+
+            0%,
+            60%,
+            100% {
                 transform: translateY(0);
                 opacity: 0.5;
             }
+
             30% {
                 transform: translateY(-8px);
                 opacity: 1;
@@ -522,7 +547,8 @@
                 font-size: 14px;
             }
 
-            .send-button, .mic-button {
+            .send-button,
+            .mic-button {
                 width: 36px;
                 height: 36px;
             }
@@ -570,17 +596,20 @@
                 min-height: 60px;
             }
 
-            .send-button, .mic-button {
+            .send-button,
+            .mic-button {
                 width: 44px;
                 height: 44px;
             }
 
             #questionInput {
-                font-size: 16px; /* Prevents zoom on iOS */
+                font-size: 16px;
+                /* Prevents zoom on iOS */
             }
         }
     </style>
 </head>
+
 <body>
     <!-- Main Content - Full Width -->
     <div class="main-content">
@@ -599,13 +628,15 @@
                 <div class="example-questions">
                     <div class="example-question" onclick="askQuestion('What is the probation period?')">
                         <div class="example-question-title">Probation Period</div>
-                        <div class="example-question-desc">Learn about the probation period duration and requirements</div>
+                        <div class="example-question-desc">Learn about the probation period duration and requirements
+                        </div>
                     </div>
                     <div class="example-question" onclick="askQuestion('How many annual leave days do employees get?')">
                         <div class="example-question-title">Annual Leave</div>
                         <div class="example-question-desc">Find out about annual leave entitlements</div>
                     </div>
-                    <div class="example-question" onclick="askQuestion('What is the increment percentage after probation?')">
+                    <div class="example-question"
+                        onclick="askQuestion('What is the increment percentage after probation?')">
                         <div class="example-question-title">Salary Increment</div>
                         <div class="example-question-desc">Understand increment policies after probation</div>
                     </div>
@@ -620,17 +651,13 @@
         <div class="input-area">
             <div class="input-wrapper">
                 <div class="input-logo">📋</div>
-                <input 
-                    type="text" 
-                    id="questionInput" 
-                    placeholder="Message Policy Assistant..."
-                    onkeypress="handleKeyPress(event)"
-                >
+                <input type="text" id="questionInput" placeholder="Message Policy Assistant..."
+                    onkeypress="handleKeyPress(event)">
                 <div class="input-actions">
-                    <button class="mic-button" title="Voice input">🎤</button>
                     <button class="send-button" id="sendButton" onclick="sendQuestion()" title="Send">
                         <svg width="16" height="16" viewBox="0 0 16 16" fill="none">
-                            <path d="M1.5 8L14.5 1L10 14L8 8L1.5 8Z" fill="currentColor" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
+                            <path d="M1.5 8L14.5 1L10 14L8 8L1.5 8Z" fill="currentColor" stroke="currentColor"
+                                stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" />
                         </svg>
                     </button>
                 </div>
@@ -712,7 +739,7 @@
 
             const messageText = document.createElement('div');
             messageText.className = 'message-text';
-            
+
             if (isUser) {
                 messageText.textContent = content;
             } else {
@@ -802,4 +829,5 @@
         });
     </script>
 </body>
+
 </html>
