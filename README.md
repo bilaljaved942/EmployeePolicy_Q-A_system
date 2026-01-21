@@ -45,7 +45,23 @@ EmployeePolicy_Q&A_System/
 - **Q&A System**: Answers questions using RAG with LLM integration
 - **Realistic Documents**: All policy documents include complete, realistic information
 
-## Installation
+## Quick Start (Docker - Recommended)
+
+### Local Development with Docker
+
+1. **Install Docker** (if not already installed)
+   - Download from [docker.com](https://www.docker.com/products/docker-desktop)
+
+2. **Run with Docker Compose**:
+```bash
+docker-compose up --build
+```
+
+3. **Open your browser**:
+   - Frontend: http://localhost:8000
+   - API Docs: http://localhost:8000/docs
+
+## Traditional Installation
 
 1. **Clone or navigate to the project directory**
 
@@ -54,7 +70,7 @@ EmployeePolicy_Q&A_System/
 pip install -r requirements.txt
 ```
 
-3. **Set up environment variables** (optional, for OpenAI features):
+3. **Set up environment variables** (required for OpenAI features):
 Create a `.env` file in the project root:
 ```
 OPENAI_API_KEY=your_openai_api_key_here
@@ -175,6 +191,30 @@ All documents have been created with realistic, complete information:
 - Python 3.8+
 - See `requirements.txt` for all dependencies
 
+## Deployment
+
+### Deploy to Render (Recommended)
+
+The project is fully configured for deployment on Render with Docker:
+
+1. **Push to GitHub**:
+```bash
+git add .
+git commit -m "Deploy to Render"
+git push origin main
+```
+
+2. **Connect to Render**:
+   - Go to [render.com](https://render.com)
+   - Create a new Web Service from your GitHub repo
+   - Select **Docker** as runtime
+   - Add your `OPENAI_API_KEY` environment variable
+   - Deploy!
+
+3. **Your app will be live** at: `https://your-app-name.onrender.com`
+
+See [RENDER_DEPLOY.md](RENDER_DEPLOY.md) for detailed deployment instructions.
+
 ## Notes
 
 - The system uses local embeddings by default (sentence-transformers)
@@ -182,6 +222,7 @@ All documents have been created with realistic, complete information:
 - Vector database is stored locally in `./vector_db/`
 - Documents are automatically reprocessed when running the ingestion pipeline
 - All documents include realistic, complete information (no placeholders)
+- Docker support is included for easy local development and cloud deployment
 
 ## License
 
