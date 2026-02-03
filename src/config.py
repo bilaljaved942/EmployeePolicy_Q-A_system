@@ -39,3 +39,15 @@ SIMILARITY_THRESHOLD = 0.7  # Minimum similarity score for retrieval
 # Q&A Configuration
 MAX_TOKENS = 500
 TEMPERATURE = 0.7
+
+# Authentication Configuration
+JWT_SECRET = os.getenv("JWT_SECRET", "your-super-secret-key-change-in-production")
+JWT_ALGORITHM = "HS256"
+ACCESS_TOKEN_EXPIRE_HOURS = 24 * 7  # 1 week
+
+# Database Configuration
+DATABASE_URL = os.getenv("DATABASE_URL", "postgresql://postgres:postgres@localhost:5432/employee_policy_qa")
+
+# Upload Configuration
+UPLOAD_DIRECTORY = os.path.join(os.path.dirname(os.path.dirname(__file__)), "data", "uploads")
+

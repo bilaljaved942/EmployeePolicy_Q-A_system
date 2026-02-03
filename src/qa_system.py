@@ -49,14 +49,36 @@ Answer:"""
         return prompt
     
     def answer(self, question: str, use_llm: bool = True) -> Dict[str, any]:
-        """Answer a question using RAG"""
-        # Step 1: Retrieve relevant documents
-        search_results = self.pipeline.search(question, top_k=TOP_K_RESULTS)
+        """Answer a question using RAG (STRICT user isolation)"""
+        # STRICT: Must have user_id in pipeline
+        if not self.pipeline.user_id:
+            raise ValueError("SECURITY ERROR: QA System requires user_id for strict document isolation")
         
-        if not search_results:
+        # Step 1: Retrieve relevant documents with STRICT isolation
+        try:
+            search_results = self.pipeline.search(question, top_k=TOP_K_RESULTS)
+        except ValueError as e:
+            # User isolation security error
             return {
                 "question": question,
-                "answer": "I couldn't find relevant information in the company documents to answer this question.",
+                "answer": f"Security Error: {str(e)}",
+                "sources": [],
+                "confidence": 0.0
+            }
+        
+        if not search_results:
+            # Check if it's because user has no documents
+            store_info = self.pipeline.vector_store.get_collection_info()
+            doc_count = store_info.get('document_count', 0)
+            
+            if self.pipeline.user_id and doc_count == 0:
+                error_msg = "No documents uploaded yet. Please upload documents first to ask questions."
+            else:
+                error_msg = "I couldn't find relevant information in your documents to answer this question. Try uploading more documents or rephrasing your question."
+            
+            return {
+                "question": question,
+                "answer": error_msg,
                 "sources": [],
                 "confidence": 0.0
             }

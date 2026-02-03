@@ -5,12 +5,18 @@ from .config import VECTOR_DB_TYPE, VECTOR_DB_PATH, COLLECTION_NAME
 
 
 class VectorStore:
-    """Manages vector database operations"""
+    """Manages vector database operations with multi-tenant support"""
     
-    def __init__(self, db_type: str = VECTOR_DB_TYPE, db_path: str = VECTOR_DB_PATH):
+    def __init__(self, db_type: str = VECTOR_DB_TYPE, db_path: str = VECTOR_DB_PATH, user_id: int = None):
         self.db_type = db_type.lower()
         self.db_path = db_path
-        self.collection_name = COLLECTION_NAME
+        self.user_id = user_id
+        
+        # Use user-specific collection name if user_id is provided
+        if user_id:
+            self.collection_name = f"user_{user_id}_documents"
+        else:
+            self.collection_name = COLLECTION_NAME
         
         if self.db_type == "chroma":
             self._init_chroma()
@@ -38,8 +44,15 @@ class VectorStore:
             self.collection = self.client.get_collection(name=self.collection_name)
             print(f"Loaded existing ChromaDB collection: {self.collection_name}")
         except:
-            self.collection = self.client.create_collection(name=self.collection_name)
-            print(f"Created new ChromaDB collection: {self.collection_name}")
+            # Only create new collection if it's a user-specific collection
+            # This prevents creating a default "employee_policies" collection
+            if self.user_id or self.collection_name.startswith("user_"):
+                self.collection = self.client.create_collection(name=self.collection_name)
+                print(f"Created new ChromaDB collection: {self.collection_name}")
+            else:
+                # For non-user collections, only create if explicitly needed
+                self.collection = self.client.create_collection(name=self.collection_name)
+                print(f"Created new ChromaDB collection: {self.collection_name}")
     
     def _init_faiss(self):
         """Initialize FAISS"""
@@ -133,28 +146,46 @@ class VectorStore:
             return self._search_faiss(query_embedding, top_k)
     
     def _search_chroma(self, query_embedding: List[float], top_k: int) -> List[Dict]:
-        """Search in ChromaDB"""
+        """Search in ChromaDB with STRICT user isolation"""
         results = self.collection.query(
             query_embeddings=[query_embedding],
-            n_results=top_k
+            n_results=top_k * 2  # Get more results to filter by user_id
         )
         
-        # Format results
+        # Format results and STRICTLY filter by user_id
         formatted_results = []
         if results['ids'] and len(results['ids'][0]) > 0:
             for i in range(len(results['ids'][0])):
+                metadata = results['metadatas'][0][i]
+                metadata_user_id = metadata.get('user_id')
+                
+                # STRICT: Must have user_id in metadata
+                if metadata_user_id is None:
+                    print(f"WARNING: Document {results['ids'][0][i]} has no user_id in metadata - SKIPPING")
+                    continue
+                
+                # STRICT: MUST match the search user_id exactly
+                if self.user_id:
+                    if str(metadata_user_id) != str(self.user_id):
+                        # Skip documents from other users
+                        continue
+                
                 result = {
                     "chunk_id": results['ids'][0][i],
                     "content": results['documents'][0][i],
-                    "metadata": results['metadatas'][0][i],
+                    "metadata": metadata,
                     "distance": results['distances'][0][i] if 'distances' in results else None
                 }
                 formatted_results.append(result)
+                
+                # Stop once we have enough results for this user
+                if len(formatted_results) >= top_k:
+                    break
         
         return formatted_results
     
     def _search_faiss(self, query_embedding: List[float], top_k: int) -> List[Dict]:
-        """Search in FAISS"""
+        """Search in FAISS with STRICT user isolation"""
         import numpy as np
         
         if self.faiss_index is None:
@@ -162,21 +193,40 @@ class VectorStore:
         
         query_vector = np.array([query_embedding], dtype='float32')
         
-        # Search
-        distances, indices = self.faiss_index.search(query_vector, top_k)
+        # Search for more results to ensure we get enough after filtering
+        search_k = min(top_k * 3, self.faiss_index.ntotal)
+        distances, indices = self.faiss_index.search(query_vector, search_k)
         
-        # Format results
+        # Format results with STRICT user filtering
         results = []
         for i, idx in enumerate(indices[0]):
             if idx < len(self.metadata_store):
                 metadata_entry = self.metadata_store[idx]
+                metadata = metadata_entry["metadata"]
+                metadata_user_id = metadata.get('user_id')
+                
+                # STRICT: Must have user_id in metadata
+                if metadata_user_id is None:
+                    print(f"WARNING: Document {metadata_entry['chunk_id']} has no user_id in metadata - SKIPPING")
+                    continue
+                
+                # STRICT: MUST match the search user_id exactly
+                if self.user_id:
+                    if str(metadata_user_id) != str(self.user_id):
+                        # Skip documents from other users
+                        continue
+                
                 result = {
                     "chunk_id": metadata_entry["chunk_id"],
                     "content": metadata_entry["content"],
-                    "metadata": metadata_entry["metadata"],
+                    "metadata": metadata,
                     "distance": float(distances[0][i])
                 }
                 results.append(result)
+                
+                # Stop once we have enough results for this user
+                if len(results) >= top_k:
+                    break
         
         return results
     
@@ -188,15 +238,40 @@ class VectorStore:
                 "type": "ChromaDB",
                 "collection_name": self.collection_name,
                 "document_count": count,
-                "path": self.db_path
+                "path": self.db_path,
+                "user_id": self.user_id
             }
         elif self.db_type == "faiss":
             count = self.faiss_index.ntotal if self.faiss_index else 0
             return {
                 "type": "FAISS",
                 "document_count": count,
-                "path": self.db_path
+                "path": self.db_path,
+                "user_id": self.user_id
             }
+    
+    def delete_collection(self):
+        """Delete the current collection (for cleanup or user deletion)"""
+        if self.db_type == "chroma":
+            try:
+                self.client.delete_collection(name=self.collection_name)
+                print(f"Deleted ChromaDB collection: {self.collection_name}")
+                return True
+            except Exception as e:
+                print(f"Error deleting collection: {e}")
+                return False
+        elif self.db_type == "faiss":
+            import shutil
+            try:
+                if os.path.exists(self.index_path):
+                    os.remove(self.index_path)
+                if os.path.exists(self.metadata_path):
+                    os.remove(self.metadata_path)
+                print(f"Deleted FAISS index for user: {self.user_id}")
+                return True
+            except Exception as e:
+                print(f"Error deleting FAISS index: {e}")
+                return False
 
 
 if __name__ == "__main__":
